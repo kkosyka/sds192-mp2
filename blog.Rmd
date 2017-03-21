@@ -9,6 +9,7 @@ output: html_document
 ## Loading the data
 
 test :P
+hello :)
 
 This project is so interesting and relevant to my life!
 
