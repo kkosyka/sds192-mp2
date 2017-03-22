@@ -14,41 +14,51 @@ load("candidates.rda")
 load("committees.rda")
 load("contributions.rda")
 ```
-
+ 
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
+#Assign cand_id to each candidate for ease of use later on
+Romney="P80003353"
+Obama="P80003338"
+
 candidateContributions<-candidates %>%
   left_join(contributions, by = c("cand_id" = "cand_id"))
-  
-RomneyContributions <- candidateContributions %>% filter(cand_id == "P80003353", entity_type=="PAC", cand_election_yr == "2012")%>%
+
+#Function to create data for contributions of each candidate
+contributionsData <- function(id) {
+	data <- candidateContributions %>%
+	  filter(cand_id == id, entity_type=="PAC", cand_election_yr == "2012")%>%
   select(-cand_city, -cand_state, -cand_st1,-cand_st2, -cand_office_district, -cand_status, -cand_zip, -amndt_ind, -image_num, -zip_code, -employer, -occupation, -file_num, -memo_cd, -memo_text, -sub_id) %>%
   arrange(transaction_amt) %>% filter(transaction_amt > 0)
-```
+}
 
-```{r}
-RomneyPAC<- RomneyContributions %>%
-  group_by(name, transaction_type)%>%
+#Function to create data for Political Action Committee (PAC) for each candidate
+PAC <- function(Contributions2) {
+  Contributions2 %>%
+  group_by(name,transaction_type)%>%
   summarise(PACcontribution = sum(transaction_amt)) %>%
   arrange(desc (PACcontribution))
+}
 
-RomneyPAC %>%
-  ggplot(aes(x=name, y=PACcontribution)) + geom_bar(stat = "identity")
-```
+#Function to create a plot for PAC for each candidate
+makePlot <- function(candidatePAC) {
+  candidatePAC %>%
+    ggplot(aes(x=name, y=PACcontribution)) + geom_bar(stat = "identity")
+}
 
-```{r}
-ObamaContributions <- candidateContributions %>% filter(cand_id == "P80003338", entity_type=="PAC", cand_election_yr == "2012")%>%
-  select(-cand_city, -cand_state, -cand_st1,-cand_st2, -cand_office_district, -cand_status, -cand_zip, -amndt_ind, -image_num, -zip_code, -employer, -occupation, -file_num, -memo_cd, -memo_text, -sub_id) %>%
-  arrange(transaction_amt) %>% filter(transaction_amt > 0)
+#Create `contributions` data set for Romney and Obama
+RomneyContributions<-contributionsData(Romney)
+ObamaContributions <- contributionsData(Obama)
 
-ObamaPAC <- ObamaContributions %>%
-  group_by(name, transaction_type)%>%
-  summarise(PACcontribution = sum(transaction_amt)) %>%
-  arrange(desc (PACcontribution))
+#Create `PAC` data set for Romney and Obama
+RomneyPAC <- PAC(RomneyContributions)
+ObamaPAC <- PAC(ObamaContributions)
 
-ObamaPAC %>%
-  ggplot(aes(x=name, y=PACcontribution)) + geom_bar(stat = "identity")
+#Create plors for RomneyPAC and ObamaPAC
+makePlot(RomneyPAC)
+makePlot(ObamaPAC)
 ```
 
