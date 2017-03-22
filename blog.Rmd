@@ -8,11 +8,6 @@ output: html_document
 
 ## Loading the data
 
-test :P
-hello :)
-
-This project is so interesting and relevant to my life!
-
 ```{r, include=FALSE}
 load("house_elections.rda")
 load("candidates.rda")
@@ -34,10 +29,13 @@ RomneyContributions <- candidateContributions %>% filter(cand_id == "P80003353",
 ```
 
 ```{r}
-RomneyContributions %>%
-  group_by(name) %>%
+RomneyPAC<- RomneyContributions %>%
+  group_by(name, transaction_type)%>%
   summarise(PACcontribution = sum(transaction_amt)) %>%
-  arrange(desc(PACcontribution))
+  arrange(desc (PACcontribution))
+
+RomneyPAC %>%
+  ggplot(aes(x=name, y=PACcontribution)) + geom_bar(stat = "identity")
 ```
 
 ```{r}
@@ -45,9 +43,12 @@ ObamaContributions <- candidateContributions %>% filter(cand_id == "P80003338", 
   select(-cand_city, -cand_state, -cand_st1,-cand_st2, -cand_office_district, -cand_status, -cand_zip, -amndt_ind, -image_num, -zip_code, -employer, -occupation, -file_num, -memo_cd, -memo_text, -sub_id) %>%
   arrange(transaction_amt) %>% filter(transaction_amt > 0)
 
-ObamaContributions %>%
-  group_by(name)%>%
+ObamaPAC <- ObamaContributions %>%
+  group_by(name, transaction_type)%>%
   summarise(PACcontribution = sum(transaction_amt)) %>%
   arrange(desc (PACcontribution))
+
+ObamaPAC %>%
+  ggplot(aes(x=name, y=PACcontribution)) + geom_bar(stat = "identity")
 ```
 
