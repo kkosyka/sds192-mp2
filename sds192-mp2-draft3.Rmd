@@ -44,7 +44,6 @@ committeeContribution <- function(contribution) {
   contribution %>%
   mutate(name = gsub(',', '', name))%>%
   mutate(name = gsub('&', 'AND', name))%>%
-  mutate(name = gsub('.', '', name))%>%
   group_by(name,transaction_type)%>%
   summarise(contributionTotal = sum(transaction_amt)) %>%
   arrange(desc (contributionTotal))%>%
@@ -52,12 +51,12 @@ committeeContribution <- function(contribution) {
     mutate(transactionAmt = (if(transaction_type == "24A"){0-contributionTotal} else{contributionTotal}))
 }
 
-#Function to create a plot for PAC for each candidate
-makePlot <- function(candidatePAC,name) {
-  candidatePAC %>%
+#Function to create a plot for contributions for each candidate
+makePlot <- function(candidateCont,name) {
+  candidateCont %>%
     ggplot(aes(x=name, y=transactionAmt, fill = transaction_type))+
-    geom_bar(stat = "identity")+labs(title=paste("Committee Contribution towards ", if(name == "P80003353"){"Romney"}else{"Obama"}), x = "Committee", y = "Contribution Amount ($)", size=14)+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12), axis.text.y = element_text(size = 12))+
+    geom_bar(stat = "identity")+labs(title=paste("Committee Contribution towards ", if(name == "P80003353"){"Romney"}else{"Obama"}), x = "Committee", y = "Contribution Amount ($)")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), axis.title = element_text(size = 13), plot.title =element_text(size = 18) )+
     scale_fill_manual(name = "Transaction Type", values = c("#D05955","#3B4C5D", "#66AD9B", "#D05955","#3B4C5D", "#66AD9B","#D05955","#3B4C5D"))
 }
 
@@ -65,14 +64,24 @@ makePlot <- function(candidatePAC,name) {
 RomneyContributions<-contributionsData(Romney)
 ObamaContributions <- contributionsData(Obama)
 
-#Create `PAC` data set for Romney and Obama
+#Create `Commitee Contributions` dataset for Romney and Obama
 RomneyCommitteeContributions <- committeeContribution(RomneyContributions)
 ObamaCommitteeContributions <- committeeContribution(ObamaContributions)
 ```
 
 
 ```{r fig.width=9, fig.height=9, message=FALSE, warning=FALSE}
-#Create plots for RomneyPAC and ObamaPAC
+#Create bar plots for RomneyCommitteeContributions
 makePlot(RomneyCommitteeContributions, Romney)
+```
+
+The bar graph shows the top ten committes contributing toward Mitt Romney,either supporting or opposing his candidacy, during the 2012 presidential election.
+
+
+```{r fig.width=9, fig.height=9, message=FALSE, warning=FALSE}
+#Create bar plots for ObamaCommitteeContributions
 makePlot(ObamaCommitteeContributions, Obama)
 ```
+
+The bar graph shows the top ten committes contributing toward Barack Obama,either supporting or opposing his candidacy, during the 2012 presidential election.
+
