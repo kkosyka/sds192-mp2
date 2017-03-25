@@ -43,7 +43,7 @@ contributionsData <- function(id) {
 committeeContribution <- function(contribution) {
   contribution %>%
   mutate(name = gsub(',', '', name))%>%
-  mutate(name = gsub('AND', '&', name))%>%
+  mutate(name = gsub('&', 'AND', name))%>%
   mutate(name = gsub('.', '', name))%>%
   group_by(name,transaction_type)%>%
   summarise(contributionTotal = sum(transaction_amt)) %>%
