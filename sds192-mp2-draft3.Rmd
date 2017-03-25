@@ -56,9 +56,9 @@ committeeContribution <- function(contribution) {
 makePlot <- function(candidatePAC,name) {
   candidatePAC %>%
     ggplot(aes(x=name, y=transactionAmt, fill = transaction_type))+
-    geom_bar(stat = "identity")+labs(title=paste("Committee Contribution towards ", if(name == "P80003353"){"Romney"}else{"Obama"}), x = "Committee", y = "Contribution Amount ($)")+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-    scale_fill_manual(name = "Transaction Type", values = c("#D05955","#3B4C5D", "#66AD9B", "#D05955","#3B4C5D",   "#66AD9B","#D05955","#3B4C5D"))
+    geom_bar(stat = "identity")+labs(title=paste("Committee Contribution towards ", if(name == "P80003353"){"Romney"}else{"Obama"}), x = "Committee", y = "Contribution Amount ($)", size=14)+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12), axis.text.y = element_text(size = 12))+
+    scale_fill_manual(name = "Transaction Type", values = c("#D05955","#3B4C5D", "#66AD9B", "#D05955","#3B4C5D", "#66AD9B","#D05955","#3B4C5D"))
 }
 
 #Create `contributions` data set for Romney and Obama
