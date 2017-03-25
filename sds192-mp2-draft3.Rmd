@@ -38,9 +38,11 @@ contributionsData <- function(id) {
   arrange(transaction_amt) %>% filter(transaction_amt > 0,name != "")
 }
 
+
 #Function to create data for top 10 committee contribution for each candidate
 committeeContribution <- function(contribution) {
   contribution %>%
+  mutate(name = gsub(',', '', name))%>%
   group_by(name,transaction_type)%>%
   summarise(contributionTotal = sum(transaction_amt)) %>%
   arrange(desc (contributionTotal))%>%
@@ -52,8 +54,7 @@ committeeContribution <- function(contribution) {
 makePlot <- function(candidatePAC,name) {
   candidatePAC %>%
     ggplot(aes(x=name, y=transactionAmt, fill = transaction_type))+
-    geom_bar(stat = "identity")+  
-    labs(title=paste("Commitee Contribution towards ", if(name == "P80003353"){"Romney"}else{"Obama"}), x = "Committee", y = "Contribution Amount ($)")+
+    geom_bar(stat = "identity")+labs(title=paste("Commitee Contribution towards ", if(name == "P80003353"){"Romney"}else{"Obama"}), x = "Committee", y = "Contribution Amount ($)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1))+
     scale_fill_manual(name = "Transaction Type", values = c("#D05955","#3B4C5D", "#66AD9B", "#D05955","#3B4C5D",   "#66AD9B","#D05955","#3B4C5D"))
 }
