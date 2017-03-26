@@ -1,6 +1,6 @@
 ---
 title: "Mini-Project 2"
-author: "Kalynn Kosyka, Subashini Sridhar, Erina Fukuda"
+author: "Erina Fukuda, Kalynn Kosyka, Subashini Sridhar"
 date: "March 24, 2017"
 output: html_document
 ---
@@ -18,46 +18,42 @@ library(ggthemes)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-candidateContributions<-candidates %>%
-  left_join(contributions, by = c("cand_id" = "cand_id"))
-```
-
-```{r, message=FALSE, warning=FALSE}
 #Assign cand_id to each candidate for ease of use later on
 Romney="P80003353"
 Obama="P80003338"
 
 candidateContributions<-candidates %>%
-  left_join(contributions, by = c("cand_id" = "cand_id"))
+  left_join(contributions, by = c("cand_id" = "cand_id"))  #joining candidate & contribution table by candidate ID
 
 #Function to create data for contributions of each candidate
 contributionsData <- function(id) {
 	data <- candidateContributions %>%
-	  filter(cand_id == id, cand_election_yr == "2012")%>%
-  select(-cand_city, -cand_state, -cand_st1,-cand_st2, -cand_office_district, -cand_status, -cand_zip, -amndt_ind, -image_num, -zip_code, -employer, -occupation, -file_num, -memo_cd, -memo_text, -sub_id) %>%
-  arrange(transaction_amt) %>% filter(transaction_amt > 0,name != "")
+	filter(cand_id == id, cand_election_yr == "2012")%>% #filter for specific candidate and election year of 2012
+  select(-cand_city,-cand_state,-cand_st1,-cand_st2,-cand_office_district,-cand_status,-cand_zip, -amndt_ind, -image_num,-zip_code,-employer,-occupation,-file_num,-memo_cd,-memo_text,-sub_id) %>% #omitting irrelevant columns
+  arrange(transaction_amt) %>% #ordering rows based on transaction amount
+  filter(transaction_amt > 0,name != "") #removing negative transaction amounts and removing rows where committee   names are empty
 }
-
 
 #Function to create data for top 10 committee contribution for each candidate
 committeeContribution <- function(contribution) {
   contribution %>%
-  mutate(name = gsub(',', '', name))%>%
-  mutate(name = gsub('&', 'AND', name))%>%
-  group_by(name,transaction_type)%>%
-  summarise(contributionTotal = sum(transaction_amt)) %>%
-  arrange(desc (contributionTotal))%>%
-    head(n = 10)%>%
-    mutate(transactionAmt = (if(transaction_type == "24A"){0-contributionTotal} else{contributionTotal}))
+  mutate(name = gsub(',', '', name))%>% #removing "," in order for the committee names to be consistent
+  mutate(name = gsub('&', 'AND', name))%>% #subbing "&" with "AND" in order for the committee names to be consistent
+  group_by(name,transaction_type)%>% #grouping by committee names and the transaction type
+  summarise(contributionTotal = sum(transaction_amt)) %>% #summing the total value based on transaction amount
+  arrange(desc (contributionTotal))%>% #ordering from largest to smallest
+  head(n = 10)%>% #selecting the top 10, the 10 largest contributions
+  mutate(transactionAmt=(if(transaction_type=="24A"){0-contributionTotal}else{contributionTotal})) #24A = opposing, thus we thought it would be smart to make opposing negative, easier to distinguish between opposing and for
 }
 
 #Function to create a plot for contributions for each candidate
 makePlot <- function(candidateCont,name) {
   candidateCont %>%
-    ggplot(aes(x=name, y=transactionAmt, fill = transaction_type))+
-    geom_bar(stat = "identity")+labs(title=paste("Committee Contribution towards ", if(name == "P80003353"){"Romney"}else{"Obama"}), x = "Committee", y = "Contribution Amount ($)")+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1), axis.title = element_text(size = 13), plot.title =element_text(size = 18) )+
-    scale_fill_manual(name = "Transaction Type", values = c("#D05955","#3B4C5D", "#66AD9B", "#D05955","#3B4C5D", "#66AD9B","#D05955","#3B4C5D"))
+  ggplot(aes(x=name, y=transactionAmt, fill = transaction_type))+ #ggplot with name and transaction amount, category based on transaction type
+  geom_bar(stat = "identity")+ #create bar graph
+  labs(title=paste("Committee Contribution towards ", if(name == "P80003353"){"Romney"}else{"Obama"}), x = "Committee", y = "Contribution Amount ($)")+ #customizing the title of the plot and axis
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), axis.title = element_text(size = 13), plot.title =element_text(size = 18) )+ #customize the bar graph, affect titles and sizing
+  scale_fill_manual(name = "Transaction Type", values=c("#D05955","#3B4C5D", "#66AD9B", "#D05955","#3B4C5D", "#66AD9B","#D05955","#3B4C5D")) #customizing legend
 }
 
 #Create `contributions` data set for Romney and Obama
@@ -65,8 +61,8 @@ RomneyContributions<-contributionsData(Romney)
 ObamaContributions <- contributionsData(Obama)
 
 #Create `Commitee Contributions` dataset for Romney and Obama
-RomneyCommitteeContributions <- committeeContribution(RomneyContributions)
-ObamaCommitteeContributions <- committeeContribution(ObamaContributions)
+RomneyCommitteeContributions<-committeeContribution(RomneyContributions)
+ObamaCommitteeContributions<-committeeContribution(ObamaContributions)
 ```
 
 
