@@ -1,64 +1,127 @@
 ---
 title: "Mini-Project 2"
-author: "Kalynn Kosyka, Subashini Sridhar, Erina Fukuda"
-date: "March 24, 2017"
+author: "Subashini Sridhar, Kalynn Kosyka, Erina Fukuda"
+date: "March 26, 2017"
 output: html_document
 ---
 
+### 2012 Presidential Election: Top Committees in the Money Race
 
+In the 2012 presidential election, Barack Obama of Democratic party was running as an incumbent against Mitt Romney of the Republican Party for the presidential term, 2012-2016. According to Washington Post, Democrats & Barack Obama raised $1.20 billion and Republicans & Mitt Romney raised $1.18 billion. At the conclusion of the 2012 election it was one of the most expensive U.S. elections in history. The people who profited the most from these elections where private consulting firms who were paid tens and millions of dollars for advertising, fundraising, and other campaign activities. We are interested in seeing which committees contributed the most supporting or opposing a candidate, and how much money was spent by those committees.Some of the committees are registered as consulting organizations that gained the most from the election. Overall, The committees we are interested in are those registered with the Federal Election Commission, which include federal political action committees and party committees, campaign committees for presidential candidates, and groups or organizations who are spending money for or against candidates for federal office.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+library(tidyverse)
+library(ggthemes)
+```
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
 ## Loading the data
- 
-```{r, include=FALSE}
 load("house_elections.rda")
 load("candidates.rda")
 load("committees.rda")
 load("contributions.rda")
 ```
- 
-```{r, message=FALSE, warning=FALSE}
-library(tidyverse)
-```
 
+### Retrieve Data for Top 10 Committees Spending toward Romney & Obama
 ```{r, message=FALSE, warning=FALSE}
 #Assign cand_id to each candidate for ease of use later on
-Romney="P80003353"
-Obama="P80003338"
+Romney = "P80003353"
+Obama = "P80003338"
 
 candidateContributions<-candidates %>%
-  left_join(contributions, by = c("cand_id" = "cand_id"))
+  #joining candidate & contribution table by candidate ID
+  left_join(contributions, by = c("cand_id" = "cand_id"))  
 
 #Function to create data for contributions of each candidate
 contributionsData <- function(id) {
 	data <- candidateContributions %>%
-	  filter(cand_id == id, entity_type=="PAC", cand_election_yr == "2012")%>%
-  select(-cand_city, -cand_state, -cand_st1,-cand_st2, -cand_office_district, -cand_status, -cand_zip, -amndt_ind, -image_num, -zip_code, -employer, -occupation, -file_num, -memo_cd, -memo_text, -sub_id) %>%
-  arrange(transaction_amt) %>% filter(transaction_amt > 0)
+	#filter for specific candidate and election year of 2012
+	filter(cand_id == id, cand_election_yr == "2012") %>% 
+	#omitting irrelevant columns
+  select(-cand_city,-cand_state,-cand_st1,-cand_st2,-cand_office_district,-cand_status,-cand_zip, -amndt_ind, -image_num,-zip_code,-employer,-occupation,-file_num,-memo_cd,-memo_text,-sub_id) %>% 
+	#ordering rows based on transaction amount in ascending order
+  arrange(transaction_amt) %>%
+	#removing negative transaction amounts and removing rows where committee names are empty
+  filter(transaction_amt > 0,name != "") 
 }
 
-#Function to create data for Political Action Committee (PAC) for each candidate
-PAC <- function(Contributions2) {
-  Contributions2 %>%
-  group_by(name,transaction_type)%>%
-  summarise(PACcontribution = sum(transaction_amt)) %>%
-  arrange(desc (PACcontribution))
-}
-
-#Function to create a plot for PAC for each candidate
-makePlot <- function(candidatePAC) {
-  candidatePAC %>%
-    ggplot(aes(x=name, y=PACcontribution)) + geom_bar(stat = "identity")
+#Function to create data for top 10 committee contribution for each candidate
+committeeContribution <- function(contribution) {
+  contribution %>%
+  #removing "," in order for the committee names to be consistent
+  mutate(name = gsub(',', '', name)) %>%
+  #subbing "&" with "AND" in order for the committee names to be consistent
+  mutate(name = gsub('&', 'AND', name)) %>%
+  #grouping by committee names and the transaction type
+  group_by(name,transaction_type) %>%
+  #summing the total value based on transaction amount
+  summarise(contributionTotal = sum(transaction_amt)) %>% 
+  #ordering from largest to smallest
+  arrange(desc(contributionTotal)) %>%
+  #selecting the top 10, the 10 largest contributions
+  head(n = 10) %>%
+  #24A = opposing cand, thus make transactions opposing negative, easier to distinguish between opposing and supporting
+  mutate(transactionAmt = (if(transaction_type =="24A"){0 - contributionTotal}else{contributionTotal})) 
 }
 
 #Create `contributions` data set for Romney and Obama
 RomneyContributions<-contributionsData(Romney)
 ObamaContributions <- contributionsData(Obama)
 
-#Create `PAC` data set for Romney and Obama
-RomneyPAC <- PAC(RomneyContributions)
-ObamaPAC <- PAC(ObamaContributions)
-
-#Create plors for RomneyPAC and ObamaPAC
-makePlot(RomneyPAC)
-makePlot(ObamaPAC)
+#Create `Commitee Contributions` dataset for Romney and Obama
+RomneyCommitteeContributions <- committeeContribution(RomneyContributions)
+ObamaCommitteeContributions <- committeeContribution(ObamaContributions)
 ```
+
+### Visualizing Top 10 Committees Spending towards Obama & Romney 
+```{r}
+#Function to create a bar char of top 10 committees making contributions towards each candidate
+makePlot <- function(candidateCont,id) {
+  candidateCont %>%
+  #ggplot with name and transaction amount, category based on transaction type
+  ggplot(aes(x=name, y=transactionAmt, fill = transaction_type)) + 
+  #create bar graph
+  geom_bar(stat = "identity") +
+  #customizing the title of the plot and axis
+  labs(title=paste("Committee Contribution towards ", if(id == "P80003353"){"Romney"}else{"Obama"}), x = "Committee", y = "Contribution Amount ($)") +
+  #customize the bar graph, affect titles and sizing
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), axis.title = element_text(size = 13), plot.title =element_text(size = 18) ) +
+  #customizing legend
+  scale_fill_manual(name = "Transaction Type", values=c("#D05955","#3B4C5D", "#66AD9B", "#D05955","#3B4C5D", "#66AD9B","#D05955","#3B4C5D"))
+}
+```
+
+
+```{r fig.width=9, fig.height=9, message=FALSE, warning=FALSE}
+#Create bar plots for RomneyCommitteeContributions
+makePlot(RomneyCommitteeContributions, Romney)
+```
+
+The bar graph shows the top ten committees contributing toward Mitt Romney,either supporting or opposing his candidacy; where the committees are color coded based on how they spent the money as indicated by transaction type: 24A = Independent expenditure opposing election of candidate, 24C = Coordinated party expenditure (supporting candidate), and 24E =  Independent expenditure advocating election of candidate.   
+
+Of the top 10 committees contributing towards Romney, most favor Romney's election. The top two committees supporting Romney are American Rambler Productions and Mentzer Media Services Inc. The Republican party made a $20,681,762 coordinated expenditure towards American Rambler Productions in support of Romney's candidacy. American Rambler Productions a consulting firm, compensated some of Romney's senior advisors, including Stuart Stevens, Russ Schriefer and Eric Ferhnstrom. In this plot, committees filled with a red bar and have negative values are those that oppose Romney's candidancy. The committee spending the most opposing Romney is Mundy Katowitz Media, a media buying firm that supports Democratic candidates, which spepng $57,466,042. Its top client during the 2012 election was Priorities USA Action, the super PAC supporting President Obama’s re-election.
+
+
+```{r fig.width=9, fig.height=9, message=FALSE, warning=FALSE}
+#Create bar plots for ObamaCommitteeContributions
+makePlot(ObamaCommitteeContributions, Obama)
+```
+
+The bar graph shows the top ten committees contributing toward Barack Obama,either supporting or opposing his candidacy; where the committees are color coded based on how they spent the money as indicated by transaction type: 24A = Independent expenditure opposing election of candidate, 24C = Coordinated party expenditure (supporting candidate), and 24E =  Independent expenditure advocating election of candidate.
+
+In this bar chart, the only committee that is supporting Barack Obama is a Democratic party expenditure made towards GMMB an Advertising, Political Consulting, Advocacy which is spent $14,376,243 suppporting Obama's candidacy. In this plot, committees filled with a red bar and have negative values are those that oppose Obama's re-election. Of the top committees contributing, most are against Obama's relection. For instance, Crossroads Media LLC a Republican media Services firm whose main activity is attacking Barack Obama through target ads has spent about $106,000,000. Mentzer Media Services Inc. is also another political advertising agency that has spent close to $120,799,058 against Obama. It is interesting to note that the top six committees spending toward Obama: Crossroads Media LLC.,Mentzer Media Services Inc., National Media Research, Planning and Placement, OnMessage Inc., Jamestown Associates, and Targeted Victory are media agencies that are running ads to oppose his election. From these two bar graphs, we see unlike Obama, Romney received a number independent expenditures advocating his election including: Angler LLC., Crossroads Media, American Media and Advocacy Group, Direct Response, Mentzer Media, and National Media. Also, notice that Crossroads Media, Mentzer Media Services, National Media spend more money for ads opposing Obama than money on ads supporting Romney. In addition, we can infer that the Obama campaign spent significantly less money than the Romney campaign on ads targeting the opposite candidate. 
+
+### Challenges Faced
+In our data, we notice that there were duplicates committee names such as those that are the same names but with extra commas, different capitalization, or extra words attached (e.g. ABC Org. vs. ABC vs. Abc Organization). Therefore, we wanted to figure out a way to aggregate the duplicated data of the same organization. We made several attempts, including the use of `gsub()` to take out punctuation and replace certain words (e.g. “&” to “and”). However, for names in which there were extra or differently spelled words included (e.g. ABC Org. vs. ABC Organization) and we realized that we would manually have had to go through every single row to aggregate the data. Although there may have been a way to complete this task, we were unable to figure it out. Therefore, if we had more time, our next challenge would have been to find a more effective way to clean our data.
+
+### References
+Bartz, Jason, T.W. Farnam, Sisi Wei and Karen Yourish. "2012 Presidential Campaign Finance Explorer." The Washington Post. WP Company, 25 Sept.2012. <http://www.washingtonpost.com/wp-srv/special/politics/campaign-finance/>.
+
+"Data Dictionary - Candidate Master File." Federal Election Commission. 
+
+"Data Dictionary - Committee Master File." Federal Election Commission. 
+
+"Data Dictionary - Transaction Type Codes." Federal Election Commission. 
+
+Eggen, Dan, and Tom Hamburger. "Private Consultants See Huge Election Profits." The Washington Post. WP Company, 10 Nov. 2012. <https://www.washingtonpost.com/politics/decision2012/private-consultants-see-huge-election-profits/2012/11/10/edaab580-29d8-11e2-96b6-8e6a7524553f_story.html>.
 
